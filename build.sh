@@ -43,7 +43,7 @@ ln -s /mnt/$version/$arch/i2pbsd/lib /lib
 ln -s /mnt/$version/$arch/i2pbsd/usr/lib /usr/lib
 ln -s /mnt/$version/$arch/i2pbsd/usr/libexec /usr/libexec
 
-/mnt/$version/$arch/i2pbsd/bin/i2pd & /mnt/$version/$arch/i2pbsd/bin/librewolf/librewolf-bin
+/mnt/$version/$arch/i2pbsd/bin/i2pd & /mnt/$version/$arch/i2pbsd/librewolf/librewolf-bin
 
 " > mount/.profile
 

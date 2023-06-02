@@ -7,7 +7,7 @@ version="7.3"
 
 version_no_dot=$(printf "$version" | tr -d '.')
 
-pkg_add wget curl cdrtools
+pkg_add wget curl cdrtools jq
 
 wget -nc "https://cdn.openbsd.org/pub/OpenBSD/$version/$arch/install$version_no_dot.iso"
 mkdir tmp_build
@@ -31,12 +31,20 @@ rm mount/{install,install.md,install.sub,upgrade,autoinstall}
 echo "
 #!/bin/ksh
 
+sleep 3
+
+rootdisk=\$(dmesg | sed -E '/^root on ([^ ]+) .*$/h;\$!d;g;s//\1/')
+mount -u /dev/\${rootdisk:-rd0a} /
+
 mount /dev/cd0a /mnt
 
-cat << EOF | chroot /mnt/$version/$arch/i2pbsd /bin/ksh
-        export LD_LIBRARY_PATH=/lib
-        i2pd
-EOF
+export LD_LIBRARY_PATH=/lib
+ln -s /mnt/$version/$arch/i2pbsd/lib /lib
+ln -s /mnt/$version/$arch/i2pbsd/usr/lib /usr/lib
+ln -s /mnt/$version/$arch/i2pbsd/usr/libexec /usr/libexec
+
+/mnt/$version/$arch/i2pbsd/bin/i2pd & /mnt/$version/$arch/i2pbsd/bin/librewolf/librewolf-bin
+
 " > mount/.profile
 
 mkdir ../build/$version/$arch/i2pbsd
@@ -60,10 +68,15 @@ tar -C i2pbsd -xzf ./xbase$version_no_dot.tgz
 tar -C i2pbsd -xzf ./xfont$version_no_dot.tgz 
 tar -C i2pbsd -xzf ./xserv$version_no_dot.tgz
 
-#wget "$(curl "https://librewolf.net/installation/linux/" | grep -o "https://[^\"]*\.AppImage" | head -n 1)" -O i2pbsd/bin/librewolf
-#chmod +x i2pbsd/bin/librewolf
+libversion=$(curl "https://gitlab.com/librewolf-community/browser/source/-/releases.json" | jq -r '.[0]|.tag')
 
-printf "i2pd\nufw\n" | while read package; do
+wget https://gitlab.com/api/v4/projects/44042130/packages/generic/librewolf/$libversion/librewolf-$libversion-linux-x86_64-package.tar.bz2
+
+tar -C i2pbsd -xf librewolf-$libversion-linux-x86_64-package.tar.bz2
+
+rm librewolf-$libversion-linux-x86_64-package.tar.bz2
+
+printf "i2pd\n" | while read package; do
   name="$(pkg_info -f "$package" | grep "@name" | cut -f 2 -d " ")"
   wget "http://cdn.openbsd.org/pub/OpenBSD/$version/packages/$arch/$name.tgz"
   tar -C i2pbsd -xzf "$name.tgz"
